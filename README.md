@@ -29,6 +29,7 @@ A aplicação é hospedada na **Hostinger** (Hostinger Web Application Hosting),
 - [Recuperação de senha](#recuperação-de-senha)
 - [Ambientes e branches](#ambientes-e-branches)
 - [Deploy (Hostinger)](#deploy-hostinger)
+- [Testes e2e](#testes-e2e)
 - [Scripts disponíveis](#scripts-disponíveis)
 
 ## Tecnologias
@@ -237,6 +238,18 @@ O build gera arquivos estáticos em `dist/`, que podem ser publicados em qualque
 3. O arquivo `public/.htaccess` (copiado para `dist/`) redireciona as rotas da SPA para o `index.html`, permitindo acessar diretamente URLs como `/dashboard` em servidores Apache/LiteSpeed.
 4. No backend do mesmo ambiente, inclua o domínio do frontend em `FRONTEND_URL` (CORS).
 
+## Testes e2e
+
+Testes ponta a ponta com [Playwright](https://playwright.dev), em `e2e/`, organizados por módulo (`e2e/<modulo>/<fluxo>.spec.ts`). Rodam contra a API de verdade — suba o backend antes:
+
+```bash
+npx playwright install chromium   # uma vez por máquina
+npm run e2e                       # a suíte inteira (sobe o npm run dev sozinho)
+npm run e2e -- e2e/users/         # só um módulo
+```
+
+Setup, variáveis `E2E_*` e o que cada spec cobre: [`e2e/README.md`](e2e/README.md). Padrão para escrever testes: [`.claude/rules/e2e.md`](.claude/rules/e2e.md).
+
 ## Scripts disponíveis
 
 | Script                 | Descrição                                |
@@ -249,3 +262,9 @@ O build gera arquivos estáticos em `dist/`, que podem ser publicados em qualque
 | `npm run typecheck`    | Verificação de tipos do TypeScript       |
 | `npm run format`       | Prettier (formata o projeto)             |
 | `npm run format:check` | Prettier (somente verificação)           |
+| `npm run e2e`          | Testes e2e (Playwright)                  |
+| `npm run e2e:ui`       | Testes e2e no modo interativo            |
+| `npm run e2e:headed`   | Testes e2e com o navegador visível       |
+| `npm run e2e:debug`    | Testes e2e passo a passo (Inspector)     |
+| `npm run e2e:report`   | Relatório HTML da última execução        |
+| `npm run e2e:codegen`  | Grava cliques e sugere seletores         |

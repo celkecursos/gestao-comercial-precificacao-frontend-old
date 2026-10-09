@@ -8,7 +8,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig([
-  globalIgnores(['dist', 'coverage']),
+  globalIgnores(['dist', 'coverage', 'playwright-report', 'test-results']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -43,6 +43,11 @@ export default defineConfig([
     // Único ponto autorizado a importar o axios diretamente.
     files: ['src/services/api.ts', 'src/utils/errors.ts'],
     rules: { 'no-restricted-imports': 'off' },
+  },
+  {
+    // Testes e2e rodam no Node (Playwright), não no navegador do app.
+    files: ['e2e/**/*.ts', 'playwright.config.ts'],
+    languageOptions: { globals: globals.node },
   },
   prettier,
 ]);
