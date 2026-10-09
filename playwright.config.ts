@@ -38,7 +38,12 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: 0,
-  reporter: [['html', { open: 'never' }], ['list']],
+  // `test.only` esquecido não passa na CI.
+  forbidOnly: !!process.env['CI'],
+  // Na CI, o reporter `github` marca a falha direto na linha do spec, no Pull Request.
+  reporter: process.env['CI']
+    ? [['github'], ['html', { open: 'never' }], ['list']]
+    : [['html', { open: 'never' }], ['list']],
   use: {
     baseURL,
     // Artefato só quando falha — trace/vídeo de execução verde é lixo em disco.

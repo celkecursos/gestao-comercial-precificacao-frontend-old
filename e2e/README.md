@@ -62,6 +62,20 @@ Trace, vídeo e screenshot só são guardados quando o teste **falha** (`test-re
 ⚠️ **Não faça logout nem troque a senha** dos usuários do `.env` dentro de um teste: o
 backend invalida todos os tokens do usuário e o resto da suíte cai no `/login`.
 
+## No GitHub (CI)
+
+O workflow `.github/workflows/e2e.yml` roda a suíte em todo Pull Request e push para
+`develop`, `homolog` e `main`. Ele monta tudo dentro do próprio job — MySQL descartável,
+backend da branch `develop` (com migrations e seed) e o frontend — e não toca nenhum
+ambiente real.
+
+- **Resultado:** o check "E2E / Playwright" fica verde ou vermelho no Pull Request; a falha
+  aparece anotada na linha do spec, na aba "Files changed".
+- **Detalhes da falha:** na execução (aba Actions), baixe o artefato `playwright-report`,
+  descompacte e rode `npx playwright show-report playwright-report` — vídeo, screenshot e
+  trace de cada teste que falhou. O log da API sai no fim do job.
+- **Outra branch do backend:** aba Actions → E2E → "Run workflow" → `backend_ref`.
+
 ## Organização
 
 ```
