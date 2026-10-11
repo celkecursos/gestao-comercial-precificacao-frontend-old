@@ -1,0 +1,130 @@
+# Testes e2e (Playwright) contra uma API de verdade, montada dentro do próprio job:
+# MySQL descartável + backend (branch develop, por padrão) + frontend em `npm run dev`.
+# Nada aqui toca os ambientes develop/homolog/produção — o banco nasce e morre com o job.
+# Ver e2e/README.md.
+name: E2E
+
+on:
+  pull_request:
+    branches: [develop, homolog, main]
+  push:
+    branches: [develop, homolog, main]
+  # Botão "Run workflow" na aba Actions — permite escolher a branch do backend.
+  workflow_dispatch:
+    inputs:
+      backend_ref:
+        description: Branch do backend a usar
+        default: develop
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Playwright
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root_ci_password
+          MYSQL_DATABASE: gestao_comercial
+          TZ: UTC
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot_ci_password --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      # Frontend e testes
+      VITE_API_URL: http://localhost:3000
+      # Usuários do seed do backend — dados fictícios de demonstração, num banco que só
+      # existe durante este job (ver "Credenciais de demonstração" no README).
+      E2E_ADMIN_EMAIL: cesar@celke.com.br
+      E2E_ADMIN_PASSWORD: '123456A#b'
+      E2E_USER_EMAIL: kelly@celke.com.br
+      E2E_USER_PASSWORD: '123456A#b'
+
+    steps:
+      - name: Checkout do frontend
+        uses: actions/checkout@v4
+
+      - name: Checkout do backend
+        uses: actions/checkout@v4
+        with:
+          repository: cesarszpak/gestao-comercial-precificacao-backend
+          ref: ${{ inputs.backend_ref || 'develop' }}
+          path: backend
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+
+      # ---------------------------------------------------------------- backend
+      - name: Backend — instalar e compilar
+        working-directory: backend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Backend — subir a API (migrations + seed)
+        working-directory: backend
+        env:
+          NODE_ENV: development
+          PORT: 3000
+          FRONTEND_URL: http://localhost:5173
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USERNAME: root
+          DB_PASSWORD: root_ci_password
+          DB_DATABASE: gestao_comercial
+          DB_MIGRATIONS_RUN: 'true'
+          DB_SEED_ON_STARTUP: 'true'
+          JWT_SECRET: ci-segredo-somente-para-testes-automatizados
+        run: |
+          nohup node dist/main > ../api.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:3000/health > /dev/null && echo "API no ar" && exit 0
+            sleep 2
+          done
+          echo "::error::A API não subiu em 2 minutos"
+          cat ../api.log
+          exit 1
+
+      # --------------------------------------------------------------- frontend
+      - name: Frontend — instalar dependências
+        run: npm ci
+
+      - name: Instalar o Chromium do Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Rodar os testes e2e
+        run: npm run e2e
+
+      # -------------------------------------------------------------- relatório
+      - name: Publicar relatório do Playwright
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+      - name: Log da API (quando falha)
+        if: failure()
+        run: cat api.log || true

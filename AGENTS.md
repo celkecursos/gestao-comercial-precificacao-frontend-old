@@ -36,6 +36,7 @@ Verifique também a tela nos **dois temas** (claro e escuro) e em largura de cel
 - **Gráficos:** cores via `useChartTheme()`.
 - **Acessibilidade:** todo botão só com ícone usa `IconButton` (o `label` é obrigatório); modais usam `Modal`/`FormModal` (baseados em `<dialog>`).
 - **Rotas:** caminhos em `routes/paths.ts`, página lazy em `routes/lazy-pages.tsx`, rota em `routes/router.tsx` e item de menu em `routes/navigation.ts`. Restrinja por perfil com `RoleGuard` e `roles` no item de menu.
+- **Testes e2e** (Playwright) em `e2e/<modulo>/<fluxo>.spec.ts`, seguindo `.claude/rules/e2e.md`. Para criar: `/criar-teste-e2e <modulo>`. Textos de interface, `label` de campos e `label` de `IconButton` são os seletores dos testes — mude-os quando a UX pedir e ajuste o teste junto.
 - **Mensagens de sucesso/erro** de ações: `useToast()` (ou `useCrudActions` nas listagens).
 
 ## Checklist para uma nova tela
